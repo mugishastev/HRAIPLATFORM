@@ -1,101 +1,80 @@
-# HRAI - AI-Powered Unified Talent Platform
+# 🏗️ HRAI System Documentation: End-to-End Logic & Workflows
 
-HRAI is a production-grade recruitment ecosystem that leverages Google Gemini AI to automate the screening, scoring, and ranking of job applicants. It bridges the gap between massive candidate pools and high-quality hiring decisions through intelligent automation.
-
----
-
-## 👥 User Roles & Access
-
-### 1. Recruiters (The Core Users)
-Recruiters are the primary operators of the platform. Their workflow includes:
-*   **Job Management**: Creating and editing job roles with specific "AI Blueprints" (custom instructions for the AI).
-*   **Applicant CRM**: Managing all applicants in a unified view, tracking their status from "Applied" to "Hired".
-*   **AI Screening**: Triggering the Gemini AI engine to analyze candidates against job requirements.
-*   **Insights**: Monitoring recruitment performance and application trends through real-time charts.
-
-### 2. Applicants (The Talent)
-Applicants interact with the public-facing side of the platform:
-*   **Careers Portal**: Browsing available jobs in professional Table or Grid views.
-*   **Smart Search**: Finding relevant roles using AI-enhanced search and category filters.
-*   **Easy Apply**: Submitting applications, including resume uploads and profile details.
-*   **Tracking**: Managing their own applications and viewing their status.
-
-### 3. Admins (The Overseers)
-Admins have full platform governance:
-*   **User Management**: Creating and managing recruiter accounts.
-*   **System Monitoring**: Accessing global insights across all recruiters and jobs.
-*   **Audit Logs**: Monitoring system activity and ensuring platform security.
+## 🌟 Vision
+HRAI is a production-ready AI talent screening platform designed for the Umurava AI Hackathon. It solves the massive volume problem in recruitment by using **Google Gemini AI** to transform unstructured resumes and structured profiles into ranked, explainable shortlists.
 
 ---
 
-## 🚀 Key Features
+## 🛣️ The Journey: From Job Posting to Final Hire
 
-### 🤖 AI Screening Engine (Powered by Gemini)
-The heart of HRAI is its AI-driven screening process:
-1.  **Context Injection**: The AI receives the Job Description + the Recruiter's custom Blueprint.
-2.  **Deep Analysis**: It analyzes each candidate's skills, experience, and profile.
-3.  **Scoring & Ranking**: Assigns a Match Score (0-100%) and ranks candidates relatively.
-4.  **Actionable Insights**: Provides a summary, lists specific **Strengths**, and identifies **Gaps** (missing qualifications).
+### Phase 1: Recruitment Setup (Recruiter)
+1.  **Job Creation**: A recruiter creates a job role, defining traditional requirements (skills, experience, department).
+2.  **AI Blueprinting**: (Unique Feature) The recruiter can add an "AI Blueprint"—custom natural language instructions that tell the Gemini model exactly what to look for (e.g., *"Focus on candidates who have worked in fast-paced startups"*).
 
-### 📊 Real-Time Analytics
-The platform provides dynamic insights:
-*   **Applications Trends**: Weekly trend lines showing application volume.
-*   **Role Breakdown**: Visualizing which roles are attracting the most talent.
-*   **Screening Overview**: Tracking the success and failure rates of AI operations.
+### Phase 2: Multi-Channel Ingestion
+HRAI supports two distinct ingestion scenarios:
+*   **Scenario 1 (Internal)**: Applicants find the job on the **HRAI Careers Portal** and apply directly. Their data is stored in a structured format.
+*   **Scenario 2 (External)**: Recruiters can **Bulk Ingest** candidates from external sources (LinkedIn, Job Boards) by:
+    *   **CSV Upload**: Using the integrated **PapaParse** tool to map spreadsheet columns to applicant fields.
+    *   **Direct Resume Upload**: Uploading PDF/DOCX files.
 
-### 💼 Professional Job Management
-*   **4-Column Grid View**: A modern, high-density layout for managing roles.
-*   **Detailed CRM**: Filter and sort applicants based on their AI match scores.
+### Phase 3: Intelligent Parsing (Backend)
+When a candidate is added with a `resumeUrl`:
+1.  The **Resume Parsing Service** (Node.js) fetches the file from Cloudinary.
+2.  Using **pdf-parse** and **mammoth**, it extracts the raw text from the document.
+3.  The extracted text is saved to the `resumeText` field in MongoDB, ensuring the AI has the "unstructured" context it needs.
 
----
+### Phase 4: AI Screening Orchestration (Gemini API)
+When the recruiter clicks **"Run AI Screening"**:
+1.  **Payload Bundling**: The backend fetches the Job details and *all* associated applicants (including their parsed resume text).
+2.  **Intentional Prompting**: A high-context prompt is sent to **Gemini-1.5-Flash**. The prompt instructs the AI to act as a "Technical Recruiter" and evaluate candidates based on the Job Requirements + the AI Blueprint.
+3.  **Structured Output**: Gemini returns a JSON array containing:
+    *   **Match Score (0-100)**: A weighted evaluation of fit.
+    *   **Rank**: Relative position among the pool.
+    *   **Explainability**: Specific "Strengths" and "Gaps" (e.g., *"Missing AWS certification but strong in Terraform"*).
 
-## 🛠 Technical Architecture
-
-### Frontend (Next.js 15)
-*   **Framework**: Next.js with App Router.
-*   **State Management**: Redux Toolkit & RTK Query for efficient API interactions.
-*   **Styling**: Tailwind CSS with custom premium design tokens (32px rounding, glassmorphism).
-*   **Icons**: Lucide React.
-
-### Backend (Node.js & Express)
-*   **Language**: TypeScript.
-*   **Database**: MongoDB Atlas with Mongoose ODM.
-*   **AI Integration**: Google Generative AI SDK (Gemini-1.5-Flash).
-*   **Authentication**: JWT (JSON Web Tokens) with role-based access control (RBAC).
-*   **File Handling**: Cloudinary for secure resume storage.
+### Phase 5: Human-in-the-Loop Decision
+The Recruiter reviews the AI's ranked shortlist:
+*   **Accept Recommendation**: Moves the candidate to "Shortlisted" status and triggers an automated success email.
+*   **Override & Reject**: The recruiter can ignore the AI's suggestion and reject the candidate if they see a red flag the AI missed.
 
 ---
 
-## ⚙️ Environment Configuration
+## 👥 Role-Specific Workflows
 
-To run the system, the following environment variables are required:
+### 🧑‍💻 The Applicant Journey
+1.  **Discovery**: Browses the **Careers Portal** with real-time search.
+2.  **Application**: Submits their profile and resume.
+3.  **Self-Service**: Accesses a personal **Dashboard** to track the status of their applications (Applied → Screening → Interviewing → Hired).
 
-### Backend (`.env`)
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_secure_secret
-GEMINI_API_KEY=your_google_ai_key
-CORS_ORIGIN=https://your-frontend-url.com
-SMTP_PASS=your_email_app_password (for notifications)
-```
+### 👩‍💼 The Recruiter Journey
+1.  **Management**: Uses the **Job Control Center** (4-column grid) to monitor all open roles.
+2.  **Ingestion**: Uses the **CSV Ingest Tool** to bring in talent batches from external boards.
+3.  **Analysis**: Triggers AI screening and reviews explainable insights.
+4.  **Communication**: Updates candidate statuses, which triggers automated email/SMS notifications.
 
-### Frontend (`.env.local`)
-```env
-NEXT_PUBLIC_API_URL=https://your-backend-api.com/api
-```
+### 🛡️ The Admin Journey
+1.  **Governance**: Creates and deletes **Recruiter Accounts** to control access to the platform.
+2.  **Platform Health**: Monitors **Global Audit Logs** to see every action taken on the system.
+3.  **System Analytics**: Views top-level KPIs (Total Applications, AI Screening Success Rates) in the **Insights Panel**.
+
+---
+
+## 🧩 Technical Stack & Infrastructure
+*   **Frontend**: Next.js 15 (App Router), Redux Toolkit (RTK Query), Tailwind CSS (Premium Glassmorphic Design).
+*   **Backend**: Node.js, TypeScript, Express.
+*   **AI Layer**: Google Gemini 1.5 Flash (Mandatory Requirement).
+*   **Database**: MongoDB Atlas (Mongoose ODM).
+*   **Parsing**: pdf-parse, mammoth.
+*   **Infrastructure**: Fully compatible with Vercel (Frontend/Backend) and GitHub Actions (CI/CD).
 
 ---
 
-## 📈 System Workflow (End-to-End)
-
-1.  **Recruiter** posts a job for "Senior Developer" and adds a blueprint: *"Prioritize cloud experience."*
-2.  **Applicants** find the job on the Careers Portal and apply.
-3.  **Recruiter** goes to the **AI Screening** dashboard and clicks **"Run AI"**.
-4.  **AI Engine** processes the candidates and returns a ranked list within seconds.
-5.  **Recruiter** reviews the "Top Matches" and moves them to the "Interviewing" status.
-6.  **Insights Dashboard** updates to show the new screening success and application trend.
+## 📜 Assumptions & Limitations
+1.  **Resume Quality**: AI accuracy depends on the quality of the parsed text. Non-standard PDF layouts might result in "noisy" text.
+2.  **API Rate Limits**: The system is designed with `express-rate-limit` to respect Gemini API quotas.
+3.  **Human Control**: HRAI is a *support* tool; it does not automatically hire/reject without recruiter confirmation.
 
 ---
-*Developed for the Umurava AI Hackathon by **Sohoza System**.*
-*Team Members: Steven, Musa, Aliance, Mugisha, Nadia*
+*Developed for the Umurava AI Hackathon 2026 by **Team Sohoza System**.*
+*Steven, Musa, Aliance, Mugisha, Nadia*
