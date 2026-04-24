@@ -32,37 +32,45 @@ app.get('/health', (req, res) => {
   res.send('Umurava AI Hackathon API run successfully.');
 });
 
+// Root Route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Welcome to HRAI Unified Talent Platform API',
+    status: 'online',
+    docs: '/api/docs (if available)'
+  });
+});
+
 // Global Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled Error:', err);
   res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
-// Start Server
-const startServer = async () => {
+// Start Server Logic (Modified for Vercel)
+const connectDB = async () => {
     try {
         if (!process.env.MONGODB_URI) {
-            console.error('❌ MONGODB_URI is not set in .env. Exiting.');
-            process.exit(1);
+            console.warn('⚠️ MONGODB_URI not found. Database connection skipped.');
+            return;
         }
-
-        if (!process.env.GEMINI_API_KEY) {
-            console.warn('⚠️  GEMINI_API_KEY is not set. AI screening will fail.');
-        }
-
-        console.log('🔌 Connecting to MongoDB Atlas...');
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('✅ MongoDB connected successfully.');
-        console.log(`🤖 AI Model: ${process.env.GEMINI_MODEL || 'gemini-2.5-flash'}`);
-
-        app.listen(PORT, () => {
-            console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-            console.log(`🩺 Health check → http://localhost:${PORT}/health\n`);
-        });
     } catch (error) {
-        console.error('❌ Failed to start server:', error);
-        process.exit(1);
+        console.error('❌ MongoDB connection error:', error);
     }
 };
 
-startServer();
+// Only run app.listen if not in Vercel environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    connectDB().then(() => {
+        app.listen(PORT, () => {
+            console.log(`\n🚀 Local Server running on http://localhost:${PORT}`);
+        });
+    });
+} else {
+    // In Vercel, we just connect (Vercel will handle the "listen" part)
+    connectDB();
+}
+
+export default app;
