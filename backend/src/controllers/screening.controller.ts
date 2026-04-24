@@ -44,8 +44,9 @@ export const runScreening = async (req: Request, res: Response) => {
             // Must use 'applied' instead of 'screening' to match Mongoose enum
             const status = result.rank <= 10 ? 'shortlisted' : 'applied';
             await Applicant.findByIdAndUpdate(result.applicantId, {
-                aiScore: result.matchScore,
-                aiSummary: result.summary + " " + result.finalRecommendation,
+                matchScore: result.matchScore,
+                aiReasoning: result.summary,
+                aiRecommendation: result.finalRecommendation,
                 status: status
             });
         }
