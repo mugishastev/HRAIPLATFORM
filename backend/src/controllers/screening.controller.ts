@@ -82,9 +82,13 @@ export const runScreening = async (req: Request, res: Response) => {
         throw aiError;
     }
 
-  } catch (error) {
-    console.error('Screening Error:', error);
-    res.status(500).json({ error: 'Failed to execute screening process' });
+  } catch (error: any) {
+    console.error('CRITICAL Screening Error:', error);
+    res.status(500).json({ 
+        error: 'Failed to execute screening process',
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
