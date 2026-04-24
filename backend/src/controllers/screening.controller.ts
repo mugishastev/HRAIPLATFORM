@@ -35,11 +35,14 @@ export const runScreening = async (req: Request, res: Response) => {
         screening.status = 'COMPLETED';
         await screening.save();
 
-        // Persist AI Insights to Applicant records
+        // Persist AI Insights to Applicant records and auto-shortlist top performers
         for (const result of aiResults) {
+            // Must use 'applied' instead of 'screening' to match Mongoose enum
+            const status = result.rank <= 10 ? 'shortlisted' : 'applied';
             await Applicant.findByIdAndUpdate(result.applicantId, {
                 aiScore: result.matchScore,
-                aiSummary: result.summary + " " + result.finalRecommendation
+                aiSummary: result.summary + " " + result.finalRecommendation,
+                status: status
             });
         }
 
