@@ -16,6 +16,10 @@ export class AIService {
       const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
       const model = genAI.getGenerativeModel({ model: modelName });
 
+      console.log(`[AIService] Preparing to screen ${applicants.length} candidates for "${job.title}".`);
+      const candidatesWithText = applicants.filter(a => a.resumeText && a.resumeText.trim().length > 0).length;
+      console.log(`[AIService] Resumes with text: ${candidatesWithText} / ${applicants.length}`);
+
       const prompt = `
 You are an expert technical recruiter and AI assistant for HRAI.
 Your task is to analyze a list of job applicants against a specific job description and requirements.
@@ -87,6 +91,52 @@ Structure:
     } catch (error: any) {
       console.error('❌ Error in AI Screening:', error);
       throw new Error(`AI Screening failed: ${error.message}`);
+    }
+  }
+
+  static async analyzeResumeStructure(resumeText: string) {
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const apiKey = process.env.GEMINI_API_KEY as string;
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-1.5-flash' });
+
+      const prompt = `
+You are an AI Resume Parser. Your goal is to extract structured data from the following resume text.
+If a section is missing, return null for that field.
+
+Resume Text:
+${resumeText.substring(0, 8000)}
+
+### EXTRACT THE FOLLOWING SECTIONS INTO JSON:
+1. Contact Information (name, email, phone, location, linkedin)
+2. Professional Summary (3-4 sentences)
+3. Work Experience (List of objects: title, company, dates, achievements[])
+4. Skills (Technical vs Soft)
+5. Education (List of objects: degree, school, year)
+6. Optional (Certifications, Projects, Languages, Awards)
+
+### QUALITY SCORE
+Provide a "completenessScore" (0-100) based on how many essential sections (Contact, Summary, Experience, Skills, Education) are present.
+
+Return ONLY pure JSON:
+{
+  "contact": { "name": "", "email": "", "phone": "", "location": "", "linkedin": "" },
+  "summary": "",
+  "experience": [{ "title": "", "company": "", "dates": "", "achievements": [] }],
+  "skills": { "technical": [], "soft": [] },
+  "education": [{ "degree": "", "school": "", "year": "" }],
+  "optional": { "certifications": [], "projects": [], "languages": [], "awards": [] },
+  "completenessScore": number
+}
+`;
+
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(responseText);
+    } catch (error) {
+      console.error('❌ Error analyzing resume structure:', error);
+      return null;
     }
   }
 }
